@@ -1,0 +1,20 @@
+User: Hi, I'm feeling really overwhelmed today.
+Friend: I'm really sorry you're feeling that way. It sounds like you have a lot on your mind. Would you like to share what's been weighing on you?
+User: Everything seems to be piling up, and I don't know where to start.
+Friend: It must be hard to feel that pressure. Sometimes breaking things down into smaller steps can help. What is one thing that feels most urgent right now?
+User: I've been having trouble managing my work and my personal life.
+Friend: Balancing those parts of life can be really challenging. It's important to remember that it's okay to take time for yourself. Have you been able to set aside any moments just for you?
+User: Not really, it all feels so chaotic.
+Friend: I understand—it can feel chaotic when there’s no clear break. Even a short walk or listening to your favorite song might help create a little space for you. What usually helps you relax?
+User: I like listening to music and sometimes going for a walk.
+Friend: That sounds like a wonderful way to find some peace. Perhaps trying to schedule even a brief break for a walk or some music could be a good start. Remember, small steps matter.
+User: Thank you, that sounds helpful.
+Friend: You're very welcome. It’s important to be kind to yourself during these times. I'm here to listen whenever you need support.
+User: Sometimes I worry I'm not doing enough.
+Friend: It’s completely natural to feel that way, especially when you're under a lot of stress. Remember, you are doing your best, and every little step you take is progress. What might be one small thing you can do for yourself today?
+User: Maybe I could try to take a short break and just breathe for a few minutes.
+Friend: That sounds like a great idea. Taking even a few minutes to breathe and reset can make a big difference. I'm proud of you for considering that.
+User: I appreciate your support.
+Friend: I'm glad I can be here for you. Remember, it's okay to feel what you're feeling, and you're not alone in this. Every small step counts.
+User: Thanks. I feel a bit more hopeful now.
+Friend: I'm really happy to hear that. Keep taking care of yourself, and know that I'm here to help whenever you need it.
