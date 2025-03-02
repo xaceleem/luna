@@ -6,12 +6,11 @@ import torch
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
-    AutoConfig,
     Trainer,
     TrainingArguments,
-    TextDataset,
     DataCollatorForLanguageModeling,
 )
+from datasets import Dataset
 
 warnings.filterwarnings("ignore")
 
@@ -19,11 +18,30 @@ warnings.filterwarnings("ignore")
 os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'expandable_segments:True'
 
 # ------------------------------
-# 1. Create or verify training dataset
+# 1. Set the training dataset path
 # ------------------------------
-TRAINING_DATA_PATH = "conversation_data.txt"
+# Use the absolute path or the relative path as needed:
+TRAINING_DATA_PATH = "/home/xleem/luna/luna/conversation_data.txt"
+# Alternatively, if running from /home/xleem/luna/, you might use:
+# TRAINING_DATA_PATH = "luna/conversation_data.txt"
+
 if not os.path.exists(TRAINING_DATA_PATH) or os.stat(TRAINING_DATA_PATH).st_size == 0:
-    sample_data = ""
+    # Create sample conversation data if file is missing or empty.
+    # Ensure there is a blank line between conversation blocks.
+    sample_data = (
+        "User: Hi, I'm feeling really overwhelmed today.\n"
+        "Friend: I'm really sorry to hear that. What's on your mind?\n"
+        "User: Everything feels chaotic and unmanageable.\n"
+        "Friend: It sounds really hard. Maybe we can break it down into smaller parts.\n\n"
+        "User: I'm anxious about my future.\n"
+        "Friend: That sounds tough. What worries you the most?\n"
+        "User: I'm not sure if I'll find the right job.\n"
+        "Friend: Your feelings are valid. Taking one step at a time can ease that worry.\n\n"
+        "User: I feel so lonely these days.\n"
+        "Friend: That must be really painful. I'm here to listen.\n"
+        "User: I don't have many friends, and I feel isolated.\n"
+        "Friend: Sometimes reaching out, even in small ways, can help you feel more connected.\n"
+    )
     with open(TRAINING_DATA_PATH, "w", encoding="utf-8") as f:
         f.write(sample_data)
     print(f"Sample training data created at {TRAINING_DATA_PATH}")
@@ -39,31 +57,52 @@ if tokenizer.pad_token is None:
 FINE_TUNED_MODEL_DIR = "fine_tuned_model"
 MODEL_WEIGHTS_PATH = os.path.join(FINE_TUNED_MODEL_DIR, "pytorch_model.bin")
 
-"""def convert_csv_to_txt(csv_file_path, txt_file_path):
-
-    with open(csv_file_path, "r", encoding="utf-8") as csv_file:
-        lines = csv_file.readlines()
-    with open(txt_file_path, "w", encoding="utf-8") as txt_file:
-        for line in lines:
-            txt_file.write(line.strip() + "\n")
-            
-            """
 # ------------------------------
-# 3. Fine-tuning or loading the model
+# 3. Custom Conversation Dataset Loader with Debugging
+# ------------------------------
+def load_conversation_dataset(file_path, tokenizer, block_size=512):
+    """
+    Loads conversation data by splitting the file into samples using blank lines as delimiters.
+    Debug prints are added to help inspect the raw text and the resulting samples.
+    """
+    with open(file_path, "r", encoding="utf-8") as f:
+        text = f.read().strip()
+    
+    # Debug: print the raw text (with escape sequences visible).
+    print("Raw text read from file:")
+    print(repr(text))
+    
+    # Split text on one or more blank lines (handles Unix and Windows newlines).
+    samples = [sample.strip() for sample in re.split(r'\r?\n\s*\r?\n', text) if sample.strip()]
+    
+    # Debug: print the samples found.
+    print(f"Found {len(samples)} conversation sample(s):")
+    for i, sample in enumerate(samples):
+        print(f"--- Sample {i+1} ---")
+        print(repr(sample))
+    
+    # Create a Dataset from the conversation samples.
+    dataset = Dataset.from_dict({"text": samples})
+    
+    # Tokenize each sample.
+    def tokenize_function(examples):
+        return tokenizer(examples["text"], truncation=True, padding="max_length", max_length=block_size)
+    
+    tokenized_dataset = dataset.map(tokenize_function, batched=True)
+    tokenized_dataset.set_format(type="torch", columns=["input_ids", "attention_mask"])
+    return tokenized_dataset
+
+# ------------------------------
+# 4. Fine-tuning or loading the model
 # ------------------------------
 if not os.path.exists(FINE_TUNED_MODEL_DIR) or not os.path.exists(MODEL_WEIGHTS_PATH):
     print("No valid fine-tuned model found. Starting fine-tuning...")
     model = AutoModelForCausalLM.from_pretrained(MODEL_NAME, low_cpu_mem_usage=True)
+    
+    # Use our conversation loader.
+    train_dataset = load_conversation_dataset(TRAINING_DATA_PATH, tokenizer, block_size=512)
+    print(f"Loaded dataset with {len(train_dataset)} samples.")
 
-    def load_dataset(file_path, tokenizer, block_size=128):
-        return TextDataset(
-            tokenizer=tokenizer,
-            file_path=file_path,
-            block_size=block_size,
-            overwrite_cache=True
-        )
-
-    train_dataset = load_dataset(TRAINING_DATA_PATH, tokenizer, block_size=128)
     data_collator = DataCollatorForLanguageModeling(tokenizer=tokenizer, mlm=False)
 
     training_args = TrainingArguments(
@@ -86,16 +125,21 @@ if not os.path.exists(FINE_TUNED_MODEL_DIR) or not os.path.exists(MODEL_WEIGHTS_
 
     trainer.train()
 
+    # Remove unrecognized "loss_type" from config if it exists.
+    if "loss_type" in model.config.__dict__:
+        del model.config.__dict__["loss_type"]
+
     # Ensure the configuration contains the correct model_type.
     model.config.model_type = "gpt2"
     model.save_pretrained(FINE_TUNED_MODEL_DIR)
     tokenizer.save_pretrained(FINE_TUNED_MODEL_DIR)
 
-    # Update config.json explicitly
+    # Update config.json to reflect changes.
     config_path = os.path.join(FINE_TUNED_MODEL_DIR, "config.json")
     with open(config_path, "r", encoding="utf-8") as f:
         config = json.load(f)
     config["model_type"] = "gpt2"
+    config.pop("loss_type", None)
     with open(config_path, "w", encoding="utf-8") as f:
         json.dump(config, f, indent=2)
     print(f"Fine-tuning complete. Model saved to {FINE_TUNED_MODEL_DIR}")
@@ -105,7 +149,7 @@ else:
     tokenizer = AutoTokenizer.from_pretrained(FINE_TUNED_MODEL_DIR)
 
 # ------------------------------
-# 4. Interactive Conversation Code
+# 5. Interactive Conversation Code
 # ------------------------------
 PERSONA = (
     "You are a friendly, engaging, and thoughtful conversational partner. "
@@ -115,7 +159,7 @@ PERSONA = (
 def clean_output(text):
     """Remove unwanted content such as URLs and offensive words."""
     text = re.sub(r"http\S+", "", text)
-    banned_words = []
+    banned_words = []  # Add banned words if needed.
     for word in banned_words:
         text = re.sub(word, "[censored]", text, flags=re.IGNORECASE)
     return text.strip()
