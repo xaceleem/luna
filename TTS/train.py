@@ -24,11 +24,13 @@ def download_data():
   """
   RUN THIS TO DOWNLOAD DATASET IN TERMINAL:
   pip install kaggle
-  kaggle datasets download -d mathurinache/the-lj-speech-dataset -p "/Users/evankaiden/Documents/SimpleTransfromerTTS-copy/content/speech_dataset" --unzip
-  kaggle datasets download -d tttzof351/ljspeech-meta -p "/Users/evankaiden/Documents/SimpleTransfromerTTS-copy/content/speech_metadata" --unzip
+  kaggle datasets download -d mathurinache/the-lj-speech-dataset -p "ABSOLUTE_PATH_TO_FILE/TTS/content/speech_dataset" --unzip
+  kaggle datasets download -d tttzof351/ljspeech-meta -p "ABSOLUTE_PATH_TO_FILE/TTS/content/speech_metadata" --unzip
   """
-  hp.csv_path = "/Users/evankaiden/Documents/SimpleTransfromerTTS-copy/content/speech_metadata/metadata.csv"
-  hp.wav_path = "/Users/evankaiden/Documents/SimpleTransfromerTTS-copy/content/speech_dataset/LJSpeech-1.1/wavs"
+
+  ### UPDATE THESE PATHS IN ORDER FOR CODE TO WORK ###
+  hp.csv_path = "/Users/evankaiden/Documents/TTS/content/speech_metadata/metadata.csv"
+  hp.wav_path = "/Users/evankaiden/Documents/TTS/content/speech_dataset/LJSpeech-1.1/wavs"
   
 
 def batch_process(batch):
